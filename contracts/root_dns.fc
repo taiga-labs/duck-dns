@@ -1,0 +1,43 @@
+
+#include "imports/stdlib.fc";
+#include "imports/dns_utils.fc";
+
+;; Root DNS resolver in masterchain
+
+slice load_data() inline {
+    return get_data().begin_parse(); 
+}
+
+(int, cell) dnsresolve(slice subdomain, int category) method_id {
+    throw_unless(70, mod(slice_bits(subdomain), 8) == 0); 
+
+    int starts_with_zero_byte = subdomain.preload_int(8) == 0; 
+
+    if (starts_with_zero_byte & (slice_bits(subdomain) == 8)) {
+        return (8, null()); 
+    }
+    if (starts_with_zero_byte) {
+        subdomain~load_uint(8);
+    }
+
+    int top_subdomain_bits = get_top_domain_bits(subdomain); 
+    slice top_subdomain = subdomain~load_bits(top_subdomain_bits); 
+
+    slice my_domain = "duck"; ;; or subdomian1.subdomian2.(...).duck for other resolvers
+    int my_domain_bits = slice_bits(my_domain);
+
+    if (~ equal_slices(top_subdomain, my_domain)) {
+        return (0, null()); 
+    }
+
+    cell result = 
+        begin_cell()
+            .store_uint(dns_next_resolver_prefix, 16)
+            .store_slice(load_data())
+        .end_cell();
+
+    return (my_domain_bits + (starts_with_zero_byte ? 8 : 0), result); 
+}
+
+() recv_internal(int msg_value, cell in_msg_full, slice in_msg_body) impure {
+}
