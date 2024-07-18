@@ -58,6 +58,25 @@ export class DnsItem implements Contract {
         });
     }
 
+    async sendChangeCode(provider: ContractProvider, via: Sender, 
+        options: {
+            value: bigint;
+            queryId: bigint;
+            newCode: Cell;
+        }
+    ) {
+        await provider.internal(via, {
+            value: options.value,
+            sendMode: SendMode.PAY_GAS_SEPARATELY,
+            body: 
+                beginCell()
+                    .storeUint(0xab5fc32, 32)
+                    .storeUint(options.queryId, 64)
+                    .storeRef(options.newCode)
+                .endCell(),
+        });
+    }
+
     async getDomain(provider: ContractProvider): Promise<string> {
         const result = await provider.get("get_domain", []);
         return result.stack.readString()
