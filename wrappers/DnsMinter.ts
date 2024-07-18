@@ -5,6 +5,7 @@ export type DnsMinterConfig = {
     collectionContent: Cell;
     nftItemCode: Cell;
     adminAddress: Address;
+    duckJettonInfo: Cell;
 };
 
 export function dnsMinterConfigToCell(config: DnsMinterConfig): Cell {
@@ -13,6 +14,7 @@ export function dnsMinterConfigToCell(config: DnsMinterConfig): Cell {
             .storeRef(config.collectionContent)
             .storeRef(config.nftItemCode)
             .storeAddress(config.adminAddress)
+            .storeRef(config.duckJettonInfo)
         .endCell()
     );
 }

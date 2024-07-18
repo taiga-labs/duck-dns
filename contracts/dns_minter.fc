@@ -5,6 +5,7 @@
 #include "imports/dns_utils.fc";
 #include "imports/jetton_utils.fc";
 
+const int DEPLOY_TON_AMOUNT = 500000000; ;; 0.5 TON
 const int JETTON_TRANSFER_COMISSION = 50000000; ;; 0.05 TON
 
 ;; DNS resolver smart contract (implements NFT Collection interface)
@@ -14,12 +15,13 @@ const int JETTON_TRANSFER_COMISSION = 50000000; ;; 0.05 TON
 ;;           nft_item_code:^Cell
 ;;           = Storage;
 
-(cell, cell, slice) load_data() inline {
+(cell, cell, slice, cell) load_data() inline {
     var ds = get_data().begin_parse();
     return (
             ds~load_ref(), ;; content
             ds~load_ref(), ;; nft_item_code
-            ds~load_msg_addr() ;; admin_address
+            ds~load_msg_addr(), ;; admin_address
+            ds~load_ref() ;; duck_jetton_info
     );
 }
 
@@ -47,17 +49,39 @@ slice calculate_nft_item_address(int wc, cell state_init) {
             .begin_parse();
 }
 
-() deploy_nft_item(int item_index, cell nft_item_code, cell nft_content) impure {
-    cell state_init = calculate_nft_item_state_init(item_index, nft_item_code);
-    slice nft_address = calculate_nft_item_address(workchain(), state_init);
+() deploy_nft_item(int item_index, cell nft_item_code, cell state_init, slice nft_address, int send_mode) impure {
     var msg = begin_cell()
             .store_uint(0x18, 6)
             .store_slice(nft_address)
             .store_coins(0)
-            .store_uint(4 + 2 + 1, 1 + 4 + 4 + 64 + 32 + 1 + 1 + 1)
-            .store_ref(state_init)
-            .store_ref(nft_content);
-    send_raw_message(msg.end_cell(), 64); ;; carry all the remaining value of the inbound message, fee deducted from amount
+            .store_uint(4 + 2, 1 + 4 + 4 + 64 + 32 + 1 + 1 + 1)
+            .store_ref(state_init);
+    send_raw_message(msg.end_cell(), send_mode);
+}
+
+() send_simple_jetton(slice to_address, int jettons_amount, int tons_amount, int forward_tons_amount, slice to_jetton_wallet_address, int query_id, cell payload, int send_mode) impure inline {
+    builder message = 
+        begin_cell()
+            .store_uint(0x10, 6) ;; nobounce - int_msg_info$0 ihr_disabled:Bool bounce:Bool bounced:Bool src:MsgAddress -> 010000
+            .store_slice(to_jetton_wallet_address)
+            .store_coins(tons_amount)
+            .store_uint(0, 1 + 4 + 4 + 64 + 32 + 1 + 1)
+            .store_uint(0xf8a7ea5, 32)
+            .store_uint(query_id, 64)
+            .store_coins(jettons_amount)
+            .store_slice(to_address)    ;; to_owner_address
+            .store_slice(zero_address())  ;; response_address
+            .store_int(0, 1)  ;; empty custom_payload
+            .store_coins(forward_tons_amount) ;  ;; forward amount to new_owner_address
+            
+    if (~ cell_null?(payload)) {
+        message = message.store_ref(payload);
+    }
+    else {
+        message = message.store_int(0, 1); ;; empty forward_payload
+    }
+    
+    send_raw_message(message.end_cell(), send_mode);
 }
 
 () recv_internal(int msg_value, cell in_msg_full, slice in_msg_body) impure {
@@ -72,50 +96,82 @@ slice calculate_nft_item_address(int wc, cell state_init) {
     }
     slice sender_address = cs~load_msg_addr();
 
-    int op = in_msg_body~load_uint(32);
+    int op_code = in_msg_body~load_uint(32);
 
-    (cell content, cell nft_item_code, slice admin_address) = load_data();
+    (cell content, cell nft_item_code, slice admin_address, cell duck_jetton_info) = load_data();
 
-    if (op == 0) { ;; deploy new nft
-        int now_time = now();
-        throw_unless(199, now_time > auction_start_time); ;; start of auction
-        slice domain = read_domain_from_comment(in_msg_body);
-        int len = slice_bits(domain);
-        throw_unless(200, len > 3 * 8); ;; minimum 4 characters
-        throw_unless(201, len <= 126 * 8); ;; maxmimum 126 characters
-        throw_unless(202, mod(len, 8) == 0);
-        throw_unless(203, check_domain_string(domain));
-        int min_price = get_min_price(len, now_time);
-        throw_unless(204, msg_value >= min_price);
+    if (op_code == 0x7362d09c) { ;; jetton transfer notification
 
-        int item_index = slice_hash(domain);
+        throw_unless(512, msg_value >= (JETTON_TRANSFER_COMISSION * 2) + DEPLOY_TON_AMOUNT);
 
-        ;; cell config_cell = config_param(dns_config_id);
-        ;; if (~ cell_null?(config_cell)) {
-        ;;     slice config_cs = config_cell.begin_parse();
-        ;;     cell config = config_cs~load_dict();
-        ;;     (slice config_value, int found) = config.udict_get?(256, item_index);
-        ;;     throw_if(205, found);
-        ;; }
+        int query_id = in_msg_body~load_uint(64);
+        int msg_jetton_amount = in_msg_body~load_coins();
+        slice from_address = in_msg_body~load_msg_addr();
 
-        cell nft_content = 
-            begin_cell()
-                .store_slice(sender_address)
-                .store_ref(begin_cell().store_slice(domain).end_cell())
-            .end_cell();
+        ;; jetton payload after that
 
-        deploy_nft_item(item_index, nft_item_code, nft_content);
+        slice inner_payload = in_msg_body~load_ref().begin_parse();
+
+        int op = inner_payload~load_uint(32);
+
+        if (op == 0) { ;; deploy new nft
+            int now_time = now();
+            throw_unless(199, now_time > auction_start_time); ;; start of auction
+            slice domain = read_domain_from_comment(in_msg_body);
+            int len = slice_bits(domain);
+            throw_unless(200, len > 3 * 8); ;; minimum 4 characters
+            throw_unless(201, len <= 126 * 8); ;; maxmimum 126 characters
+            throw_unless(202, mod(len, 8) == 0);
+            throw_unless(203, check_domain_string(domain));
+            int min_price = get_min_price(len, now_time);
+            throw_unless(204, msg_value >= min_price);
+
+            int item_index = slice_hash(domain);
+
+            ;; cell config_cell = config_param(dns_config_id);
+            ;; if (~ cell_null?(config_cell)) {
+            ;;     slice config_cs = config_cell.begin_parse();
+            ;;     cell config = config_cs~load_dict();
+            ;;     (slice config_value, int found) = config.udict_get?(256, item_index);
+            ;;     throw_if(205, found);
+            ;; }
+
+            cell state_init = calculate_nft_item_state_init(item_index, nft_item_code);
+            slice nft_address = calculate_nft_item_address(workchain(), state_init);
+
+            slice sliced_duck_jetton_info = duck_jetton_info.begin_parse();
+            slice duck_master_address = sliced_duck_jetton_info~load_msg_addr();
+            cell duck_jetton_wallet_code = sliced_duck_jetton_info~load_ref();
+
+            slice dns_item_jetton_wallet_address = calculate_user_jetton_wallet_address(nft_address, duck_master_address, duck_jetton_wallet_code);
+
+            deploy_nft_item(item_index, nft_item_code, state_init, nft_address, 1);
+
+            cell nft_init_payload = 
+                begin_cell()
+                    .store_slice(sender_address)
+                    .store_ref(begin_cell().store_slice(domain).end_cell())
+                    .store_slice(dns_item_jetton_wallet_address)
+                .end_cell();
+
+            
+            slice my_jetton_wallet_address = calculate_user_jetton_wallet_address(my_address(), duck_master_address, duck_jetton_wallet_code);
+
+            send_simple_jetton(nft_address, msg_jetton_amount, (JETTON_TRANSFER_COMISSION * 2) + DEPLOY_TON_AMOUNT, JETTON_TRANSFER_COMISSION + DEPLOY_TON_AMOUNT, my_jetton_wallet_address, cur_lt(), nft_init_payload, 1);
+
+            return ();
+        }
         return ();
     }
 
-    if (op == 2) { ;; change admin address
+    if (op_code == 2) { ;; change admin address
         throw_unless(403, equal_slices(sender_address, admin_address));
         slice new_admin_address = in_msg_body~load_msg_addr();
         save_data(content, nft_item_code, new_admin_address);
         return ();
     }
 
-    if (op == 3) { ;; admin button
+    if (op_code == 3) { ;; admin button
         throw_unless(403, equal_slices(admin_address, sender_address));
         slice msg = in_msg_body~load_ref().begin_parse();
         int mode = msg~load_uint(8);
@@ -123,7 +179,7 @@ slice calculate_nft_item_address(int wc, cell state_init) {
         return ();
     }
 
-    if (op == op::fill_up) { ;; just fill-up balance
+    if (op_code == op::fill_up) { ;; just fill-up balance
         return ();
     }
 
@@ -133,18 +189,28 @@ slice calculate_nft_item_address(int wc, cell state_init) {
 ;; Get methods
 
 (int, cell, slice) get_collection_data() method_id {
-    (cell content, _, slice admin_address) = load_data();
+    (cell content, _, slice admin_address, _) = load_data();
     return (-1, content, admin_address);
 }
 
 slice get_nft_address_by_index(int index) method_id {
-    (_, cell nft_item_code, _) = load_data();
+    (_, cell nft_item_code, _, _) = load_data();
     cell state_init = calculate_nft_item_state_init(index, nft_item_code);
     return calculate_nft_item_address(workchain(), state_init);
 }
 
 cell get_nft_content(int index, cell individual_nft_content) method_id {
     return individual_nft_content;
+}
+
+;; duck_jetton_info scheme
+;; duck_jetton_info#_ duck_minter_address:MsgAddressInt
+;;           duck_jetton_wallet_code:^Cell
+;;           = duck_jetton_info;
+
+cell get_duck_jetton_info() method_id {
+    (_, _, _, cell duck_jetton_info) = load_data();
+    return duck_jetton_info;
 }
 
 (int, cell) dnsresolve(slice subdomain, int category) method_id {
