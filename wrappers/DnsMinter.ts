@@ -4,6 +4,7 @@ import { toSha256 } from '../helpers/hashing';
 export type DnsMinterConfig = {
     collectionContent: Cell;
     nftItemCode: Cell;
+    adminAddress: Address;
 };
 
 export function dnsMinterConfigToCell(config: DnsMinterConfig): Cell {
@@ -11,6 +12,7 @@ export function dnsMinterConfigToCell(config: DnsMinterConfig): Cell {
         beginCell()
             .storeRef(config.collectionContent)
             .storeRef(config.nftItemCode)
+            .storeAddress(config.adminAddress)
         .endCell()
     );
 }
@@ -52,6 +54,29 @@ export class DnsMinter implements Contract {
                 beginCell()
                     .storeUint(2, 32)
                     .storeAddress(options.newAdminAddress)
+                .endCell(),
+        });
+    }
+
+    async sendAdminJettonWithdraw(provider: ContractProvider, via: Sender, 
+        options: {
+            value: bigint;
+            mode: number;
+            payload: Cell;
+        }
+    ) {
+        await provider.internal(via, {
+            value: options.value,
+            sendMode: SendMode.PAY_GAS_SEPARATELY,
+            body: 
+                beginCell()
+                    .storeUint(3, 32)
+                    .storeRef(
+                        beginCell()
+                            .storeUint(options.mode, 8)
+                            .storeRef(options.payload)
+                        .endCell()
+                    )
                 .endCell(),
         });
     }

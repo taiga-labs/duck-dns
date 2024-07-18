@@ -1,4 +1,4 @@
-import { toNano } from '@ton/core';
+import { Address, toNano } from '@ton/core';
 import { DnsMinter } from '../../wrappers/DnsMinter';
 import { compile, NetworkProvider } from '@ton/blueprint';
 import { buildCollectionContentCell } from '.././nftContent/onChain';
@@ -10,7 +10,8 @@ export async function run(provider: NetworkProvider) {
             description: "*.duck domains",
             image: "https://cache.tonapi.io/imgproxy/kxmx0kWpNNKRyoqkyETfLnR46K-uioZ3AkfPRb2a2zg/rs:fill:200:200:1/g:no/aHR0cHM6Ly9naXRodWIuY29tL0R1Y2tNaXplbC9EdWNrQ29pbi9ibG9iL21haW4vZHVjay5wbmc_cmF3PXRydWU.webp"
         }),
-        nftItemCode: await compile('DnsItem')
+        nftItemCode: await compile('DnsItem'),
+        adminAddress: Address.parse("0QANsjLvOX2MERlT4oyv2bSPEVc9lunSPIs5a1kPthCXydUX")
     }, await compile('DnsMinter')));
 
     await dnsMinter.sendDeploy(provider.sender(), toNano('0.05'));

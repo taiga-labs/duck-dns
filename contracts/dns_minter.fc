@@ -3,6 +3,9 @@
 #include "imports/params.fc";
 #include "imports/op_codes.fc";
 #include "imports/dns_utils.fc";
+#include "imports/jetton_utils.fc";
+
+const int JETTON_TRANSFER_COMISSION = 50000000; ;; 0.05 TON
 
 ;; DNS resolver smart contract (implements NFT Collection interface)
 
@@ -11,23 +14,21 @@
 ;;           nft_item_code:^Cell
 ;;           = Storage;
 
-(cell, cell, slice, cell) load_data() inline {
+(cell, cell, slice) load_data() inline {
     var ds = get_data().begin_parse();
     return (
             ds~load_ref(), ;; content
             ds~load_ref(), ;; nft_item_code
-            ds~load_msg_addr(), ;; admin_address
-            ds~load_ref() ;; duck jetton info
+            ds~load_msg_addr() ;; admin_address
     );
 }
 
-() save_data(cell content, cell nft_item_code, slice admin_address, cell duck_jetton_info) impure inline {
+() save_data(cell content, cell nft_item_code, slice admin_address) impure inline {
     set_data(
         begin_cell()
             .store_ref(content)
             .store_ref(nft_item_code)
             .store_slice(admin_address)
-            .store_ref(duck_jetton_info)
         .end_cell()
     );
 }
@@ -73,7 +74,7 @@ slice calculate_nft_item_address(int wc, cell state_init) {
 
     int op = in_msg_body~load_uint(32);
 
-    (cell content, cell nft_item_code, slice admin_address, cell duck_jetton_info) = load_data();
+    (cell content, cell nft_item_code, slice admin_address) = load_data();
 
     if (op == 0) { ;; deploy new nft
         int now_time = now();
@@ -110,7 +111,15 @@ slice calculate_nft_item_address(int wc, cell state_init) {
     if (op == 2) { ;; change admin address
         throw_unless(403, equal_slices(sender_address, admin_address));
         slice new_admin_address = in_msg_body~load_msg_addr();
-        save_data(content, nft_item_code, new_admin_address, duck_jetton_info);
+        save_data(content, nft_item_code, new_admin_address);
+        return ();
+    }
+
+    if (op == 3) { ;; admin button
+        throw_unless(403, equal_slices(admin_address, sender_address));
+        slice msg = in_msg_body~load_ref().begin_parse();
+        int mode = msg~load_uint(8);
+        send_raw_message(msg~load_ref(), mode);
         return ();
     }
 
@@ -124,12 +133,12 @@ slice calculate_nft_item_address(int wc, cell state_init) {
 ;; Get methods
 
 (int, cell, slice) get_collection_data() method_id {
-    (cell content, _, slice admin_address, _) = load_data();
+    (cell content, _, slice admin_address) = load_data();
     return (-1, content, admin_address);
 }
 
 slice get_nft_address_by_index(int index) method_id {
-    (_, cell nft_item_code, _, _) = load_data();
+    (_, cell nft_item_code, _) = load_data();
     cell state_init = calculate_nft_item_state_init(index, nft_item_code);
     return calculate_nft_item_address(workchain(), state_init);
 }

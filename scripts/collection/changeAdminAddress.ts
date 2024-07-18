@@ -9,7 +9,7 @@ export async function run(provider: NetworkProvider) {
     
     await dnsMinter.sendChangeAdmin(provider.sender(), {
         value: toNano("0.05"),
-        newAdminAddress: Address.parse("")
+        newAdminAddress: Address.parse("0QBZttKPcDb_ZITVVEypd45nX5kgnHdZtp7yXaLmS6TJj8XQ")
     })
 }
 
