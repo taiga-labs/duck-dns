@@ -39,6 +39,23 @@ export class DnsMinter implements Contract {
         });
     }
 
+    async sendChangeAdmin(provider: ContractProvider, via: Sender, 
+        options: {
+            value: bigint;
+            newAdminAddress: Address;
+        }
+    ) {
+        await provider.internal(via, {
+            value: options.value,
+            sendMode: SendMode.PAY_GAS_SEPARATELY,
+            body: 
+                beginCell()
+                    .storeUint(2, 32)
+                    .storeAddress(options.newAdminAddress)
+                .endCell(),
+        });
+    }
+
     async sendDeployNftItem(provider: ContractProvider, via: Sender, 
         options: {
             value: bigint;
@@ -85,17 +102,27 @@ export class DnsMinter implements Contract {
 
     async getNftAddressByIndex(provider: ContractProvider, 
         options: {
-            index: string
+            index: bigint
         }
     ): Promise<Address | null> {
         const result = await provider.get("get_nft_address_by_index", [
             {
                 type: 'int',
-                value: toSha256(options.index),
+                value: options.index,
             } as TupleItemInt
         ]);
 
         return result.stack.readAddressOpt()
+        
+    }
+
+    async getCollectionData(provider: ContractProvider ): Promise<[number, Cell | null, Address | null]> {
+        const result = await provider.get("get_collection_data", [ ]);
+        return [
+            result.stack.readNumber(),
+            result.stack.readCellOpt(),
+            result.stack.readAddressOpt(),
+        ]
         
     }
 }

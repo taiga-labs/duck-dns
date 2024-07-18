@@ -1,2 +1,2 @@
 
-export const DNS_ITEM_ADDRESS: string = "kQA1YAeC3uHGgjlcQ-KhuWsyy8uv4ClwLraYW2SIVj2zhC_B";
+export const DNS_ITEM_ADDRESS: string = "kQAFORKSVOh6pesjwGM-YAyiLnT2vMkRi6Oj9Jf6BCo8ihtF";

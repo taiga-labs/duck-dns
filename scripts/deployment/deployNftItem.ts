@@ -9,6 +9,6 @@ export async function run(provider: NetworkProvider) {
 
     await dnsMinter.sendDeployNftItem(provider.sender(), {
         value: toNano('1'),
-        newDomain: "hello-world"
+        newDomain: "hello-world-yes"
     });
 }
