@@ -87,6 +87,15 @@ export class DnsItem implements Contract {
         return result.stack.readBigNumber()
     }
     
+    async getAdditioanlJettonInfo(provider: ContractProvider): Promise<[Address, bigint]> {
+        const result = await provider.get("get_additional_jetton_info", []);
+        return [
+            result.stack.readAddress(),
+            result.stack.readBigNumber()
+        ]
+    }
+    
+
     async getAuctionInfo(provider: ContractProvider): Promise<[Address | null, bigint, bigint]> {
         const result = await provider.get("get_auction_info", []);
         return [
@@ -109,7 +118,6 @@ export class DnsItem implements Contract {
                     beginCell()
                         .storeUint(0, 8)
                         .storeStringTail(options.subdomain)
-                        .storeUint(0, 8)
                     .endCell()
             } as TupleItemSlice,
             {

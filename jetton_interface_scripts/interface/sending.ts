@@ -2,9 +2,11 @@
 
 import { TonClient } from "@ton/ton";
 import { DUCK_MINTER_ADDRESS } from "../../helpers/addresses";
-import { JETTON_TRANSFER_COMISSION } from "../constants/constants";
 import { calculateJettonWalletAddress } from "../../helpers/tonclient";
 import { Address, beginCell, Cell, internal, MessageRelaxed, toNano } from "@ton/core";
+
+export const DEPLOY_TON_AMOUNT: number = 0.5; // 0.5 TON
+export const JETTON_TRANSFER_COMISSION: number = 0.05; // 0.05 TON
 
 export async function sendJettonsSerealize( 
     userWalletAddress: string, 
@@ -12,6 +14,7 @@ export async function sendJettonsSerealize(
     forwardTonAmountToDeploy: number,
     payload: Cell,
     toAddress: string,
+    additionalFee: number,
     client: TonClient): Promise<MessageRelaxed> {
 
     const userJettonWalletAddress: string = await calculateJettonWalletAddress(Address.parse(DUCK_MINTER_ADDRESS), Address.parse(userWalletAddress), client); 
@@ -19,7 +22,7 @@ export async function sendJettonsSerealize(
     return (
         internal({
             to: userJettonWalletAddress,
-            value: toNano(forwardTonAmountToDeploy + JETTON_TRANSFER_COMISSION),
+            value: toNano(forwardTonAmountToDeploy + JETTON_TRANSFER_COMISSION + additionalFee),
             body: 
                 beginCell()
                     .storeUint(0xf8a7ea5, 32)

@@ -3,12 +3,12 @@
 import { sleep } from '@ton/blueprint';
 import { mnemonicToWalletKey } from '@ton/crypto';
 import * as addresses from '../helpers/addresses';
-import * as constants from './constants/constants';
-import { sendJettonsSerealize } from './interface/sending';
 import { ENDPOINT, TON_CENTER_API_KEY } from '../helpers/connection';
 import { beginCell, MessageRelaxed, TonClient, WalletContractV4 } from '@ton/ton';
+import { DEPLOY_TON_AMOUNT, JETTON_TRANSFER_COMISSION, sendJettonsSerealize, } from './interface/sending';
 
 
+const jettonAmount: bigint = 20000n;
 const WALELT_MNEMONIC: string = "cushion unaware dune garbage soap recipe manual garment sorry mass raccoon punch pony rifle amazing grant panda casino indoor suspect alien orient thought vault";
 
 
@@ -31,10 +31,11 @@ export async function deploy_dns_item(newDomain: string) {
 
     const message: MessageRelaxed = await sendJettonsSerealize(
         my_address.toString(), 
-        20000n,
-        (constants.JETTON_TRANSFER_COMISSION * 2) + constants.DEPLOY_TON_AMOUNT,
+        jettonAmount,
+        (JETTON_TRANSFER_COMISSION * 2) + DEPLOY_TON_AMOUNT,
         beginCell().storeUint(0, 32).storeStringTail(newDomain).endCell(),
         addresses.DUCK_DOMAIN_NAMES_MINTER,
+        0.02, // additional fee for collection contract
         client
     );
 

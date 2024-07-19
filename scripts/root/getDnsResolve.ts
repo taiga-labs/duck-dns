@@ -1,14 +1,14 @@
 
 import { Address, Cell } from '@ton/core';
-import { DnsItem } from '../../wrappers/DnsItem';
+import { RootDns } from '../../wrappers/RootDns';
 import { NetworkProvider } from '@ton/blueprint';
 import { ROOT_DNS_ADDRESS } from '../../helpers/addresses';
 
 
 export async function run(provider: NetworkProvider) {
-    const dnsItem = provider.open(DnsItem.createFromAddress(Address.parse(ROOT_DNS_ADDRESS)));
+    const rootDns = provider.open(RootDns.createFromAddress(Address.parse(ROOT_DNS_ADDRESS)));
 
-    const result: [bigint, Cell | null] = await dnsItem.getDnsresolve({
+    const result: [bigint, Cell | null] = await rootDns.getDnsresolve({
         subdomain: "duck",
         category: 0n
     });

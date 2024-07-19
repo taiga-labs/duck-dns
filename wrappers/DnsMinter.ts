@@ -94,7 +94,6 @@ export class DnsMinter implements Contract {
                 type: 'slice',
                 cell: 
                     beginCell()
-                        .storeUint(0, 8)
                         .storeStringTail(options.subdomain)
                         .storeUint(0, 8)
                     .endCell()

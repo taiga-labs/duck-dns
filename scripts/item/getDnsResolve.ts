@@ -9,7 +9,7 @@ export async function run(provider: NetworkProvider) {
     const dnsItem = provider.open(DnsItem.createFromAddress(Address.parse(DNS_ITEM_ADDRESS)));
 
     const result: [bigint, Cell | null] = await dnsItem.getDnsresolve({
-        subdomain: "taiga",
+        subdomain: "google",
         category: 0n
     });
 

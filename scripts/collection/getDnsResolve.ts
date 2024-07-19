@@ -8,7 +8,7 @@ export async function run(provider: NetworkProvider) {
     const dnsMinter = provider.open(DnsMinter.createFromAddress(Address.parse(DUCK_DOMAIN_NAMES_MINTER)));
 
     const result: [bigint, Cell | null] = await dnsMinter.getDnsresolve({
-        subdomain: "hello-world",
+        subdomain: "google",
         category: 0n
     });
 
