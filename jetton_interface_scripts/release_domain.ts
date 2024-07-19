@@ -8,6 +8,7 @@ import { beginCell, MessageRelaxed, TonClient, WalletContractV4 } from '@ton/ton
 import { JETTON_TRANSFER_COMISSION, sendJettonsSerealize, } from './interface/sending';
 
 
+const jettonAmount: bigint = 30000n;
 const WALELT_MNEMONIC: string = "acoustic wheat coconut quantum fiscal note arena rough until caught guard safe rabbit wave major truly chaos song pelican guitar music certain cover speak";
 
 
@@ -30,7 +31,7 @@ export async function release_domain() {
     
     const message: MessageRelaxed = await sendJettonsSerealize(
         my_address.toString(), 
-        30000n,
+        jettonAmount,
         JETTON_TRANSFER_COMISSION,
         beginCell().storeUint(0x4ed14b65, 32).endCell(),
         addresses.DNS_ITEM_ADDRESS,

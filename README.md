@@ -29,8 +29,9 @@ EQC3dNlesgVD8YbAazcauIrXBPfiVhMMr5YYk2in0Mtsz0Bz
 
 2 - в папке scripts лежат базовые скрипты для взаимодействия с контрактами, которые не требуют сереалищации сообщений в payload jetton transfer’a. такие как геттеры, изменения словаря категорий и скрипты для деплоя DNS коллекции и DNS resolver
 
-PS: перед деплоем нужно поменять дату начала аукциона на нужную в файле contracts/imports/jetton_utils.fc в переменной auction_start_time
-
+PS: 
+1 - перед деплоем нужно поменять дату начала аукциона на нужную в файле contracts/imports/jetton_utils.fc в переменной auction_start_time
+2 - и в контаркте nft_item поставить нужные вам интервалы: auction_start_duration, auction_end_duration, auction_prolongation
 
 
 ## Project structure
