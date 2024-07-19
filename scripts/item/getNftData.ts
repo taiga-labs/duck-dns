@@ -2,8 +2,7 @@
 import { DnsItem } from '../../wrappers/DnsItem';
 import { NetworkProvider } from '@ton/blueprint';
 import { Address, Cell, Dictionary, Slice } from '@ton/core';
-import { DNS_ITEM_ADDRESS } from './constants/addresses';
-import { toSha256 } from '../../helpers/hashing';
+import { DNS_ITEM_ADDRESS } from '../../helpers/addresses';
 
 
 export async function run(provider: NetworkProvider) {

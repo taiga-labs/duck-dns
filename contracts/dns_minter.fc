@@ -49,11 +49,11 @@ slice calculate_nft_item_address(int wc, cell state_init) {
             .begin_parse();
 }
 
-() deploy_nft_item(int item_index, cell nft_item_code, cell state_init, slice nft_address, int send_mode) impure {
+() deploy_nft_item(cell state_init, int ton_amount, slice nft_address, int send_mode) impure {
     var msg = begin_cell()
             .store_uint(0x18, 6)
             .store_slice(nft_address)
-            .store_coins(0)
+            .store_coins(ton_amount)
             .store_uint(4 + 2, 1 + 4 + 4 + 64 + 32 + 1 + 1 + 1)
             .store_ref(state_init);
     send_raw_message(msg.end_cell(), send_mode);
@@ -71,14 +71,15 @@ slice calculate_nft_item_address(int wc, cell state_init) {
             .store_coins(jettons_amount)
             .store_slice(to_address)    ;; to_owner_address
             .store_slice(zero_address())  ;; response_address
-            .store_int(0, 1)  ;; empty custom_payload
+            .store_uint(0, 1)  ;; empty custom_payload
             .store_coins(forward_tons_amount) ;  ;; forward amount to new_owner_address
             
     if (~ cell_null?(payload)) {
+        message = message.store_uint(1, 1);
         message = message.store_ref(payload);
     }
     else {
-        message = message.store_int(0, 1); ;; empty forward_payload
+        message = message.store_uint(0, 1); ;; empty forward_payload
     }
     
     send_raw_message(message.end_cell(), send_mode);
@@ -107,6 +108,7 @@ slice calculate_nft_item_address(int wc, cell state_init) {
         int query_id = in_msg_body~load_uint(64);
         int msg_jetton_amount = in_msg_body~load_coins();
         slice from_address = in_msg_body~load_msg_addr();
+        in_msg_body~skip_bits(1);
 
         ;; jetton payload after that
 
@@ -117,14 +119,14 @@ slice calculate_nft_item_address(int wc, cell state_init) {
         if (op == 0) { ;; deploy new nft
             int now_time = now();
             throw_unless(199, now_time > auction_start_time); ;; start of auction
-            slice domain = read_domain_from_comment(in_msg_body);
+            slice domain = read_domain_from_comment(inner_payload);
             int len = slice_bits(domain);
             throw_unless(200, len > 3 * 8); ;; minimum 4 characters
             throw_unless(201, len <= 126 * 8); ;; maxmimum 126 characters
             throw_unless(202, mod(len, 8) == 0);
             throw_unless(203, check_domain_string(domain));
             int min_price = get_min_price(len, now_time);
-            throw_unless(204, msg_value >= min_price);
+            throw_unless(204, msg_jetton_amount >= min_price);
 
             int item_index = slice_hash(domain);
 
@@ -145,11 +147,11 @@ slice calculate_nft_item_address(int wc, cell state_init) {
 
             slice dns_item_jetton_wallet_address = calculate_user_jetton_wallet_address(nft_address, duck_master_address, duck_jetton_wallet_code);
 
-            deploy_nft_item(item_index, nft_item_code, state_init, nft_address, 1);
+            deploy_nft_item(state_init, DEPLOY_TON_AMOUNT, nft_address, 1);
 
             cell nft_init_payload = 
                 begin_cell()
-                    .store_slice(sender_address)
+                    .store_slice(from_address)
                     .store_ref(begin_cell().store_slice(domain).end_cell())
                     .store_slice(dns_item_jetton_wallet_address)
                 .end_cell();
@@ -157,7 +159,7 @@ slice calculate_nft_item_address(int wc, cell state_init) {
             
             slice my_jetton_wallet_address = calculate_user_jetton_wallet_address(my_address(), duck_master_address, duck_jetton_wallet_code);
 
-            send_simple_jetton(nft_address, msg_jetton_amount, (JETTON_TRANSFER_COMISSION * 2) + DEPLOY_TON_AMOUNT, JETTON_TRANSFER_COMISSION + DEPLOY_TON_AMOUNT, my_jetton_wallet_address, cur_lt(), nft_init_payload, 1);
+            send_simple_jetton(nft_address, msg_jetton_amount, JETTON_TRANSFER_COMISSION * 2, JETTON_TRANSFER_COMISSION, my_jetton_wallet_address, query_id, nft_init_payload, 1);
 
             return ();
         }

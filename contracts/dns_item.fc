@@ -10,9 +10,9 @@ int deploy_ton_amount() asm "500000000 PUSHINT"; ;; 0.5 TON
 int min_tons_for_storage() asm "1000000000 PUSHINT"; ;; 1 TON
 int jetton_transfer_comission() asm "50000000 PUSHINT"; ;; 0.05 TON
 
-const auction_start_duration = 300; ;;604800; ;; 1 week = 60 * 60 * 24 * 7; in testnet 2 min
-const auction_end_duration = 60; ;;3600; ;; 1 hour = 60 * 60; in testnet 1 min
-const auction_prolongation = 60; ;;3600; ;; 1 hour = 60 * 60; in testnet 1 min
+const auction_start_duration = 420; ;;604800; ;; 1 week = 60 * 60 * 24 * 7; in testnet 7 min
+const auction_end_duration = 180; ;;3600; ;; 1 hour = 60 * 60; in testnet 3 min
+const auction_prolongation = 180; ;;3600; ;; 1 hour = 60 * 60; in testnet 3 min
 
 ;;  MsgAddressInt max_bid_address
 ;;  Coins max_bid_amount
@@ -181,6 +181,7 @@ cell pack_auction(slice max_bid_address, int max_bid_amount, int auction_end_tim
         int query_id = in_msg_body~load_uint(64);
         int msg_jetton_amount = in_msg_body~load_coins();
         slice from_address = in_msg_body~load_msg_addr();
+        in_msg_body~skip_bits(1);
 
         ;; jetton payload after that
 
@@ -189,10 +190,10 @@ cell pack_auction(slice max_bid_address, int max_bid_amount, int auction_end_tim
         (int init?, int index, slice collection_address, slice owner_address, cell content, cell domain, cell auction, int last_fill_up_time, slice duck_jetton_wallet_address, int smc_jetton_balance) = load_data();
         if (~ init?) {
             throw_unless(405, equal_slices(collection_address, from_address));
-            throw_unless(426, msg_value >= jetton_transfer_comission() + deploy_ton_amount()); ;; 0.05 TON + 0.5 TON = 0.55 TON
-            slice from_user_address = in_msg_body~load_msg_addr();
+            throw_unless(426, msg_value >= jetton_transfer_comission()); ;; 0.05 TON
+            slice from_user_address = inner_payload~load_msg_addr();
             cell domain = inner_payload~load_ref();
-            slice duck_jetton_wallet_address = in_msg_body~load_msg_addr();
+            slice duck_jetton_wallet_address = inner_payload~load_msg_addr();
 
             smc_jetton_balance += msg_jetton_amount;
 
@@ -210,13 +211,13 @@ cell pack_auction(slice max_bid_address, int max_bid_amount, int auction_end_tim
             return ();
         }
 
-        if (init? & equal_slices(collection_address, from_address)) {
-            slice from_user_address = in_msg_body~load_msg_addr();
+        if (init? & equal_slices(collection_address, from_address)) { ;; if already inited
+            slice from_user_address = inner_payload~load_msg_addr();
             send_simple_jetton(from_user_address, msg_jetton_amount, jetton_transfer_comission(), 0, duck_jetton_wallet_address, cur_lt(), 1);
             return ();
         }
 
-        ;; users send jettons after that
+        ;; users jettons after that, not dns minter
 
         int inner_op_code = inner_payload~load_uint(32);
         (slice max_bid_address, int max_bid_amount, int auction_end_time) = unpack_auction(auction);

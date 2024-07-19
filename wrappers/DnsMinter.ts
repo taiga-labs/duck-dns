@@ -82,23 +82,6 @@ export class DnsMinter implements Contract {
                 .endCell(),
         });
     }
-
-    async sendDeployNftItem(provider: ContractProvider, via: Sender, 
-        options: {
-            value: bigint;
-            newDomain: string;
-        }
-    ) {
-        await provider.internal(via, {
-            value: options.value,
-            sendMode: SendMode.PAY_GAS_SEPARATELY,
-            body: 
-                beginCell()
-                    .storeUint(0, 32)
-                    .storeStringTail(options.newDomain)
-                .endCell(),
-        });
-    }
     
     async getDnsresolve(provider: ContractProvider, 
         options: {

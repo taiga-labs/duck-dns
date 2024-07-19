@@ -2,7 +2,7 @@
 import { DnsItem } from '../../wrappers/DnsItem';
 import { NetworkProvider } from '@ton/blueprint';
 import { Address, beginCell, Cell, toNano } from '@ton/core';
-import { DNS_ITEM_ADDRESS } from './constants/addresses';
+import { DNS_ITEM_ADDRESS } from '../../helpers/addresses';
 
 function seralizedDnsNextResolver(address: string): Cell {
     return (

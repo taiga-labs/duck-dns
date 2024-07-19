@@ -5,7 +5,8 @@ import { DnsMinter } from '../../wrappers/DnsMinter';
 import { Address, beginCell, toNano } from '@ton/core';
 import { calculateJettonWalletAddressWithClient } from '../../helpers/tonclient';
 
-const JETTON_TRANSFER_COMISSION = 0.05;
+const JETTON_TRANSFER_COMISSION: number = 0.05;
+const JETTON_AMOUNT_TO_WITHDRAW: number = 4500;
 const TO_ADDRESS: Address = Address.parse("0QANsjLvOX2MERlT4oyv2bSPEVc9lunSPIs5a1kPthCXydUX");
 
 export async function run(provider: NetworkProvider) {
@@ -25,7 +26,7 @@ export async function run(provider: NetworkProvider) {
                 .storeUint(0, 1 + 4 + 4 + 64 + 32 + 1 + 1)
                 .storeUint(0xf8a7ea5, 32)
                 .storeUint(Math.floor(Date.now() / 1000), 64)
-                .storeCoins(toNano(10)) // jetton amount
+                .storeCoins(toNano(JETTON_AMOUNT_TO_WITHDRAW)) // jetton amount
                 .storeAddress(TO_ADDRESS)
                 .storeUint(0, 2)
                 .storeUint(0, 1)

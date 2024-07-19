@@ -2,7 +2,7 @@
 #include "stdlib.fc";
 
 const int one_month = 2592000; ;; 1 month in seconds = 60 * 60 * 24 * 30
-const int one_year = 31622400; ;; 1 year in seconds = 60 * 60 * 24 * 366
+const int one_year = 60; ;; 1 year in seconds = 60 * 60 * 24 * 366
 const int auction_start_time = 1659171600; ;; GMT: Monday, 30 July 2022 г., 09:00:00
 const int one_ton = 1000000000;
 const int one_duck = 1000000000;
