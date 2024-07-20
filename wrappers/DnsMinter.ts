@@ -85,18 +85,14 @@ export class DnsMinter implements Contract {
     
     async getDnsresolve(provider: ContractProvider, 
         options: {
-            subdomain: string
+            domainCell: Cell;
             category: bigint;
         }
     ): Promise<[bigint, Cell]> {
         const result = await provider.get("dnsresolve", [
             {
                 type: 'slice',
-                cell: 
-                    beginCell()
-                        .storeStringTail(options.subdomain)
-                        .storeUint(0, 8)
-                    .endCell()
+                cell: options.domainCell
             } as TupleItemSlice,
             {
                 type: 'int',

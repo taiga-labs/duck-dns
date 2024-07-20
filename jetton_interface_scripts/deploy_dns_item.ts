@@ -8,7 +8,7 @@ import { beginCell, MessageRelaxed, TonClient, WalletContractV4 } from '@ton/ton
 import { DEPLOY_TON_AMOUNT, JETTON_TRANSFER_COMISSION, sendJettonsSerealize, } from './interface/sending';
 
 
-const jettonAmount: bigint = 20000n;
+const jettonAmount: bigint = 10000n;
 const WALELT_MNEMONIC: string = "cushion unaware dune garbage soap recipe manual garment sorry mass raccoon punch pony rifle amazing grant panda casino indoor suspect alien orient thought vault";
 
 
@@ -56,4 +56,4 @@ export async function deploy_dns_item(newDomain: string) {
     console.log("transaction confirmed!")
 }
 
-deploy_dns_item("google");
+deploy_dns_item("taiga-labs");

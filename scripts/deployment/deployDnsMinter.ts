@@ -13,7 +13,7 @@ export async function run(provider: NetworkProvider) {
     
     const dnsMinter = provider.open(DnsMinter.createFromConfig({
         collectionContent: buildCollectionContentCell({
-            name: "DUCK DNS Domains",
+            name: "DUCK DNS Domains!",
             description: "*.duck domains",
             image: "https://cache.tonapi.io/imgproxy/kxmx0kWpNNKRyoqkyETfLnR46K-uioZ3AkfPRb2a2zg/rs:fill:200:200:1/g:no/aHR0cHM6Ly9naXRodWIuY29tL0R1Y2tNaXplbC9EdWNrQ29pbi9ibG9iL21haW4vZHVjay5wbmc_cmF3PXRydWU.webp"
         }),

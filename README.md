@@ -33,6 +33,14 @@ PS:
 1 - перед деплоем нужно поменять дату начала аукциона на нужную в файле contracts/imports/jetton_utils.fc в переменной auction_start_time
 2 - и в контаркте nft_item поставить нужные вам интервалы: auction_start_duration, auction_end_duration, auction_prolongation
 
+## Пример
+
+В файле root/getDnsResolver.ts по домену taiga-labs.duck получим адрес коллекции минтера доменов типа any.duck
+
+Далее в файле collection/getDnsResolver.ts по домену taiga-labs.duck получим адрес DNS item'a, который отвечает за домен taiga-labs.duck
+
+В файле item/getDomain.ts проверим, что домен реально taiga-labs.duck
+
 
 ## Project structure
 

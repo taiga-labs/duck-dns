@@ -6,7 +6,7 @@ import { Address, beginCell, toNano } from '@ton/core';
 import { calculateJettonWalletAddressWithClient } from '../../helpers/tonclient';
 
 const JETTON_TRANSFER_COMISSION: number = 0.05;
-const JETTON_AMOUNT_TO_WITHDRAW: number = 4500;
+const JETTON_AMOUNT_TO_WITHDRAW: number = 1000;
 const TO_ADDRESS: Address = Address.parse("0QANsjLvOX2MERlT4oyv2bSPEVc9lunSPIs5a1kPthCXydUX");
 
 export async function run(provider: NetworkProvider) {

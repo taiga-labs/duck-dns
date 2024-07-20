@@ -1,14 +1,20 @@
 
-import { Address, Cell } from '@ton/core';
-import { DnsMinter } from '../../wrappers/DnsMinter';
 import { NetworkProvider } from '@ton/blueprint';
+import { DnsMinter } from '../../wrappers/DnsMinter';
+import { Address, beginCell, Builder, Cell } from '@ton/core';
 import { DUCK_DOMAIN_NAMES_MINTER } from '../../helpers/addresses';
+
+const DOMAIN_TO_RESOLVE: string = "taiga-labs.duck";
 
 export async function run(provider: NetworkProvider) {
     const dnsMinter = provider.open(DnsMinter.createFromAddress(Address.parse(DUCK_DOMAIN_NAMES_MINTER)));
 
+    const domain = DOMAIN_TO_RESOLVE.split(".").reverse()
+
+    let domainCell: Builder = beginCell().storeUint(0, 8).storeStringTail(domain[1]).storeUint(0, 8)
+
     const result: [bigint, Cell | null] = await dnsMinter.getDnsresolve({
-        subdomain: "google",
+        domainCell: domainCell.endCell(),
         category: 0n
     });
 
