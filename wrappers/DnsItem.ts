@@ -132,14 +132,13 @@ export class DnsItem implements Contract {
     }
 
 
-    async getNftData(provider: ContractProvider): Promise<[bigint, bigint, Address | null, Address | null, Cell]> {
+    async getNftData(provider: ContractProvider): Promise<[bigint, bigint, Address | null, Address | null]> {
         const result = await provider.get("get_nft_data", []);
         return [
             result.stack.readBigNumber(),
             result.stack.readBigNumber(),
             result.stack.readAddressOpt(),
-            result.stack.readAddressOpt(),
-            result.stack.readCell()
+            result.stack.readAddressOpt()
         ];
     }
 }

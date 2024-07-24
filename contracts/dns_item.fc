@@ -48,7 +48,7 @@ cell pack_auction(slice max_bid_address, int max_bid_amount, int auction_end_tim
 ;;      slice duck_jetton_wallet_address
 ;;      int smc_jetton_balance
 
-(int, int, slice, slice, cell, cell, cell, int, slice, int) load_data() {
+(int, int, slice, slice, cell, cell, cell, int, slice, int, cell) load_data() {
     slice contract_storage = get_data().begin_parse();
     var (index, collection_address) = (contract_storage~load_uint(256), contract_storage~load_msg_addr());
     if (contract_storage.slice_bits() > 0) {
@@ -58,18 +58,19 @@ cell pack_auction(slice max_bid_address, int max_bid_amount, int auction_end_tim
         cell auction = contract_storage~load_dict();
         int last_fill_up_time = contract_storage~load_uint(64);
 
-        slice additional_jetton_info = contract_storage~load_ref().begin_parse();
+        slice additional_info = contract_storage~load_ref().begin_parse();
 
-        slice duck_jetton_wallet_address = additional_jetton_info~load_msg_addr();
-        int smc_jetton_balance = additional_jetton_info~load_coins();
+        slice duck_jetton_wallet_address = additional_info~load_msg_addr();
+        int smc_jetton_balance = additional_info~load_coins();
+        cell base_content = additional_info~load_ref();
         
-        return (-1, index, collection_address, owner_address, content, domain, auction, last_fill_up_time, duck_jetton_wallet_address, smc_jetton_balance);
+        return (-1, index, collection_address, owner_address, content, domain, auction, last_fill_up_time, duck_jetton_wallet_address, smc_jetton_balance, base_content);
     } else {
-        return (0, index, collection_address, null(), null(), null(), null(), 0, null(), 0); ;; nft not initialized yet
+        return (0, index, collection_address, null(), null(), null(), null(), 0, null(), 0, null()); ;; nft not initialized yet
     }
 }
 
-() store_data(int index, slice collection_address, slice owner_address, cell content, cell domain, cell auction, int last_fill_up_time, slice duck_jetton_wallet_address, int smc_jetton_balance) impure {
+() store_data(int index, slice collection_address, slice owner_address, cell content, cell domain, cell auction, int last_fill_up_time, slice duck_jetton_wallet_address, int smc_jetton_balance, cell base_content) impure {
     set_data(
             begin_cell()
                 .store_uint(index, 256)
@@ -83,6 +84,7 @@ cell pack_auction(slice max_bid_address, int max_bid_amount, int auction_end_tim
                     begin_cell()
                         .store_slice(duck_jetton_wallet_address)
                         .store_coins(smc_jetton_balance)
+                        .store_ref(base_content)
                     .end_cell()
                 )
             .end_cell()
@@ -124,7 +126,7 @@ cell pack_auction(slice max_bid_address, int max_bid_amount, int auction_end_tim
     send_raw_message(message.end_cell(), send_mode);
 }
 
-() transfer_ownership(int my_balance, int index, slice collection_address, slice owner_address, cell content, slice sender_address, int query_id, slice in_msg_body, int fwd_fees, cell domain, cell auction, slice duck_jetton_wallet_address, int smc_jetton_balance) impure inline {
+() transfer_ownership(int my_balance, int index, slice collection_address, slice owner_address, cell content, slice sender_address, int query_id, slice in_msg_body, int fwd_fees, cell domain, cell auction, slice duck_jetton_wallet_address, int smc_jetton_balance, cell base_content) impure inline {
     slice new_owner_address = in_msg_body~load_msg_addr();
     force_chain(new_owner_address);
     slice response_destination = in_msg_body~load_msg_addr();
@@ -150,7 +152,7 @@ cell pack_auction(slice max_bid_address, int max_bid_amount, int auction_end_tim
         send_simple_message(response_destination, rest_amount, op::excesses(), query_id, null(), 1); ;; paying fees, revert on errors
     }
 
-    store_data(index, collection_address, new_owner_address, content, domain, auction, now(), duck_jetton_wallet_address, smc_jetton_balance);
+    store_data(index, collection_address, new_owner_address, content, domain, auction, now(), duck_jetton_wallet_address, smc_jetton_balance, base_content);
 }
 
 () recv_internal(int msg_value, cell in_msg_full, slice in_msg_body) impure {
@@ -187,13 +189,14 @@ cell pack_auction(slice max_bid_address, int max_bid_amount, int auction_end_tim
 
         slice inner_payload = in_msg_body~load_ref().begin_parse();
         
-        (int init?, int index, slice collection_address, slice owner_address, cell content, cell domain, cell auction, int last_fill_up_time, slice duck_jetton_wallet_address, int smc_jetton_balance) = load_data();
+        (int init?, int index, slice collection_address, slice owner_address, cell content, cell domain, cell auction, int last_fill_up_time, slice duck_jetton_wallet_address, int smc_jetton_balance, cell base_content) = load_data();
         if (~ init?) {
             throw_unless(405, equal_slices(collection_address, from_address));
             throw_unless(426, msg_value >= jetton_transfer_comission()); ;; 0.05 TON
             slice from_user_address = inner_payload~load_msg_addr();
             cell domain = inner_payload~load_ref();
             slice duck_jetton_wallet_address = inner_payload~load_msg_addr();
+            cell base_content = inner_payload~load_ref();
 
             smc_jetton_balance += msg_jetton_amount;
 
@@ -207,7 +210,7 @@ cell pack_auction(slice max_bid_address, int max_bid_amount, int auction_end_tim
             int duration = auction_start_duration - (auction_start_duration - auction_end_duration) * months / 12;
 
             int auction_end_time = now() + duration;
-            store_data(index, collection_address, zero_address(), content, domain, pack_auction(from_user_address, msg_jetton_amount, auction_end_time), now(), duck_jetton_wallet_address, smc_jetton_balance);
+            store_data(index, collection_address, zero_address(), content, domain, pack_auction(from_user_address, msg_jetton_amount, auction_end_time), now(), duck_jetton_wallet_address, smc_jetton_balance, base_content);
             return ();
         }
 
@@ -240,7 +243,7 @@ cell pack_auction(slice max_bid_address, int max_bid_amount, int auction_end_tim
             if (delta_time > 0) {
                 auction_end_time += delta_time;
             }
-            store_data(index, collection_address, owner_address, content, domain, pack_auction(max_bid_address, max_bid_amount, auction_end_time), now(), duck_jetton_wallet_address, smc_jetton_balance);
+            store_data(index, collection_address, owner_address, content, domain, pack_auction(max_bid_address, max_bid_amount, auction_end_time), now(), duck_jetton_wallet_address, smc_jetton_balance, base_content);
             return ();
         }
 
@@ -262,7 +265,7 @@ cell pack_auction(slice max_bid_address, int max_bid_amount, int auction_end_tim
             auction_end_time = now() + auction_start_duration; ;; always 1 week
             owner_address = zero_address();
             auction = pack_auction(max_bid_address, max_bid_amount, auction_end_time);
-            store_data(index, collection_address, owner_address, content, domain, auction, now(), duck_jetton_wallet_address, smc_jetton_balance);
+            store_data(index, collection_address, owner_address, content, domain, auction, now(), duck_jetton_wallet_address, smc_jetton_balance, base_content);
             return ();
         }
 
@@ -270,7 +273,7 @@ cell pack_auction(slice max_bid_address, int max_bid_amount, int auction_end_tim
     }   
 
 
-    (int init?, int index, slice collection_address, slice owner_address, cell content, cell domain, cell auction, int last_fill_up_time, slice duck_jetton_wallet_address, int smc_jetton_balance) = load_data();
+    (int init?, int index, slice collection_address, slice owner_address, cell content, cell domain, cell auction, int last_fill_up_time, slice duck_jetton_wallet_address, int smc_jetton_balance, cell base_content) = load_data();
     (slice max_bid_address, int max_bid_amount, int auction_end_time) = unpack_auction(auction);
 
     int auction_complete = now() > auction_end_time;
@@ -279,7 +282,7 @@ cell pack_auction(slice max_bid_address, int max_bid_amount, int auction_end_tim
 
     if (op_code == 0) {
         throw_unless(406, equal_slices(sender_address, owner_address) & auction_complete); ;; only owner can fill-up balance, prevent coins lost right after the auction
-        store_data(index, collection_address, owner_address, content, domain, auction, now(), duck_jetton_wallet_address, smc_jetton_balance);
+        store_data(index, collection_address, owner_address, content, domain, auction, now(), duck_jetton_wallet_address, smc_jetton_balance, base_content);
         return ();
     }
 
@@ -288,17 +291,17 @@ cell pack_auction(slice max_bid_address, int max_bid_amount, int auction_end_tim
         smc_jetton_balance -= max_bid_amount;
         owner_address = max_bid_address;
         auction = null();
-        store_data(index, collection_address, owner_address, content, domain, auction, last_fill_up_time, duck_jetton_wallet_address, smc_jetton_balance);
+        store_data(index, collection_address, owner_address, content, domain, auction, last_fill_up_time, duck_jetton_wallet_address, smc_jetton_balance, base_content);
     }
 
     if (op_code == op::transfer()) {
         throw_unless(401, equal_slices(sender_address, owner_address));
-        transfer_ownership(my_balance, index, collection_address, owner_address, content, sender_address, query_id, in_msg_body, fwd_fee, domain, auction, duck_jetton_wallet_address, smc_jetton_balance);
+        transfer_ownership(my_balance, index, collection_address, owner_address, content, sender_address, query_id, in_msg_body, fwd_fee, domain, auction, duck_jetton_wallet_address, smc_jetton_balance, base_content);
         return ();
     }
     if (op_code == op::edit_content()) { ;; owner can change content and dns records
         throw_unless(410, equal_slices(sender_address, owner_address));
-        store_data(index, collection_address, owner_address, in_msg_body~load_ref(), domain, auction, now(), duck_jetton_wallet_address, smc_jetton_balance);
+        store_data(index, collection_address, owner_address, in_msg_body~load_ref(), domain, auction, now(), duck_jetton_wallet_address, smc_jetton_balance, base_content);
         return ();
     }
     if (op_code == op::change_dns_record) { ;; change dns record
@@ -320,7 +323,7 @@ cell pack_auction(slice max_bid_address, int max_bid_amount, int auction_end_tim
 
         content = begin_cell().store_uint(0, 8).store_dict(keyvalue_map).end_cell();
 
-        store_data(index, collection_address, owner_address, content, domain, auction, now(), duck_jetton_wallet_address, smc_jetton_balance);
+        store_data(index, collection_address, owner_address, content, domain, auction, now(), duck_jetton_wallet_address, smc_jetton_balance, base_content);
         return ();
     }
 
@@ -344,32 +347,32 @@ cell pack_auction(slice max_bid_address, int max_bid_amount, int auction_end_tim
 ;;
 
 (int, int, slice, slice, cell) get_nft_data() method_id {
-    (int init?, int index, slice collection_address, slice owner_address, cell content, _, _, _, _, _) = load_data();
-    return (init?, index, collection_address, owner_address, content);
+    (int init?, int index, slice collection_address, slice owner_address, _, _, _, _, _, _, cell base_content) = load_data();
+    return (init?, index, collection_address, owner_address, base_content);
 }
 
 slice get_editor() method_id {
-    (_, _, _, slice owner_address, _, _, _, _, _, _) = load_data();
+    (_, _, _, slice owner_address, _, _, _, _, _, _, _) = load_data();
     return owner_address;
 }
 
 slice get_domain() method_id {
-    (_, _, _, _, _, cell domain, _, _, _, _) = load_data();
+    (_, _, _, _, _, cell domain, _, _, _, _, _) = load_data();
     return domain.begin_parse();
 }
 
 (slice, int, int) get_auction_info() method_id {
-    (_, _, _, _, _, _, cell auction, _, _, _) = load_data();
+    (_, _, _, _, _, _, cell auction, _, _, _, _) = load_data();
     return unpack_auction(auction);
 }
 
 int get_last_fill_up_time() method_id {
-    (_, _, _, _, _, _, _, int last_fill_up_time, _, _) = load_data();
+    (_, _, _, _, _, _, _, int last_fill_up_time, _, _, _) = load_data();
     return last_fill_up_time;
 }
 
 (slice, int) get_additional_jetton_info() method_id {
-    (_, _, _, _, _, _, _, _, slice duck_jetton_wallet_address, int smc_duck_balance) = load_data();
+    (_, _, _, _, _, _, _, _, slice duck_jetton_wallet_address, int smc_duck_balance, _) = load_data();
     return (duck_jetton_wallet_address, smc_duck_balance);
 }
 
@@ -378,7 +381,7 @@ int get_last_fill_up_time() method_id {
 
     throw_unless(70, mod(subdomain_bits, 8) == 0);
 
-    (_, _, _, _, cell content, _, _, _, _, _) = load_data();
+    (_, _, _, _, cell content, _, _, _, _, _, _) = load_data();
 
     slice cs = content.begin_parse();
     throw_unless(412, cs~load_uint(8) == 0); ;; data onchain tag

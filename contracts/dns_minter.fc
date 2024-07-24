@@ -117,6 +117,9 @@ slice calculate_nft_item_address(int wc, cell state_init) {
         int op = inner_payload~load_uint(32);
 
         if (op == 0) { ;; deploy new nft
+
+            cell base_content = inner_payload~load_ref();
+
             int now_time = now();
             throw_unless(199, now_time > auction_start_time); ;; start of auction
             slice domain = read_domain_from_comment(inner_payload);
@@ -146,6 +149,7 @@ slice calculate_nft_item_address(int wc, cell state_init) {
                     .store_slice(from_address)
                     .store_ref(begin_cell().store_slice(domain).end_cell())
                     .store_slice(dns_item_jetton_wallet_address)
+                    .store_ref(base_content)
                 .end_cell();
 
             
