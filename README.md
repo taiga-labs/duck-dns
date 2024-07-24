@@ -41,7 +41,9 @@ PS:
 
 В файле item/getDomain.ts проверим, что домен реально taiga-labs.duck
 
+## Метаданные
 
+В папке jetton_interface_scripts/deploy_nft_item.ts есть ссылка на картинку IMAGE_LINK
 ## Project structure
 
 -   `contracts` - source code of all the smart contracts of the project and their dependencies.
