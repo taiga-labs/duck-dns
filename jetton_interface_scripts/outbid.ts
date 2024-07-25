@@ -7,7 +7,7 @@ import { ENDPOINT, TON_CENTER_API_KEY } from '../helpers/connection';
 import { beginCell, MessageRelaxed, TonClient, WalletContractV4 } from '@ton/ton';
 import { JETTON_TRANSFER_COMISSION, sendJettonsSerealize, } from './interface/sending';
 
-const jettonAmount: bigint = 30000n;
+const jettonAmount: bigint = 40000n;
 const WALELT_MNEMONIC: string = "acoustic wheat coconut quantum fiscal note arena rough until caught guard safe rabbit wave major truly chaos song pelican guitar music certain cover speak";
 
 

@@ -43,7 +43,19 @@ PS:
 
 ## Метаданные
 
-В папке jetton_interface_scripts/deploy_nft_item.ts есть ссылка на картинку IMAGE_LINK
+Всем метаданные собираются динамически в контакте коллекции/минтрера DNS имён .duck
+
+в контакте хранится описание всех айтемов и базовый путь до ресурса, где будут хранится картинки айтемов.
+например: https://duck/storage/images/
+
+путь к картинке DNS айтема формируется из его имени.
+
+если будет создан айтем с именем taiga-labs, то путь к нему будет следующим:
+
+https://duck/storage/images/taiga-labs.jpg
+
+базовый путь и описание можно менять, взывав специальный админский оп-код
+
 ## Project structure
 
 -   `contracts` - source code of all the smart contracts of the project and their dependencies.

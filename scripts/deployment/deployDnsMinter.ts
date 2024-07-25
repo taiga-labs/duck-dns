@@ -23,7 +23,21 @@ export async function run(provider: NetworkProvider) {
             beginCell()
                 .storeAddress(Address.parse(addresses.DUCK_MINTER_ADDRESS))
                 .storeRef(duck_jetton_wallet_code)
+            .endCell(),
+        baseContentTemplates:
+            beginCell()
+                .storeRef(
+                    beginCell()
+                        .storeStringTail("A .duck blockchain domain.")
+                    .endCell()
+                )
+                .storeRef(
+                    beginCell()
+                        .storeStringTail("https://i.ibb.co/r2JQng9/") // image path
+                    .endCell()
+                )    
             .endCell()
+
     }, await compile('DnsMinter')));
 
     await dnsMinter.sendDeploy(provider.sender(), toNano('0.05'));

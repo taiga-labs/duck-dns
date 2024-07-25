@@ -13,24 +13,30 @@ const int JETTON_TRANSFER_COMISSION = 50000000; ;; 0.05 TON
 ;; storage scheme
 ;; storage#_ collection_content:^Cell
 ;;           nft_item_code:^Cell
+;;           admin_address: MsgAddressInt
+;;           duck_jetton_info:^Cell
+;;           base_content_template:^Cell
 ;;           = Storage;
 
-(cell, cell, slice, cell) load_data() inline {
+(cell, cell, slice, cell, cell) load_data() inline {
     var ds = get_data().begin_parse();
     return (
             ds~load_ref(), ;; content
             ds~load_ref(), ;; nft_item_code
             ds~load_msg_addr(), ;; admin_address
-            ds~load_ref() ;; duck_jetton_info
+            ds~load_ref(), ;; duck_jetton_info
+            ds~load_ref() ;; base_content_template
     );
 }
 
-() save_data(cell content, cell nft_item_code, slice admin_address) impure inline {
+() save_data(cell content, cell nft_item_code, slice admin_address, cell duck_jetton_info, cell base_content_template) impure inline {
     set_data(
         begin_cell()
             .store_ref(content)
             .store_ref(nft_item_code)
             .store_slice(admin_address)
+            .store_ref(duck_jetton_info)
+            .store_ref(base_content_template)
         .end_cell()
     );
 }
@@ -99,7 +105,8 @@ slice calculate_nft_item_address(int wc, cell state_init) {
 
     int op_code = in_msg_body~load_uint(32);
 
-    (cell content, cell nft_item_code, slice admin_address, cell duck_jetton_info) = load_data();
+    (cell content, cell nft_item_code, slice admin_address, cell duck_jetton_info, cell base_content_template) = load_data();
+
 
     if (op_code == 0x7362d09c) { ;; jetton transfer notification
 
@@ -110,6 +117,15 @@ slice calculate_nft_item_address(int wc, cell state_init) {
         slice from_address = in_msg_body~load_msg_addr();
         in_msg_body~skip_bits(1);
 
+        ;; chek jetton
+        slice sliced_duck_jetton_info = duck_jetton_info.begin_parse();
+        slice duck_master_address = sliced_duck_jetton_info~load_msg_addr();
+        cell duck_jetton_wallet_code = sliced_duck_jetton_info~load_ref();
+
+        slice sender_duck_jetton_wallet = calculate_user_jetton_wallet_address(my_address(), duck_master_address, duck_jetton_wallet_code);
+
+        throw_unless(302, equal_slices(sender_duck_jetton_wallet, sender_address));
+
         ;; jetton payload after that
 
         slice inner_payload = in_msg_body~load_ref().begin_parse();
@@ -117,9 +133,6 @@ slice calculate_nft_item_address(int wc, cell state_init) {
         int op = inner_payload~load_uint(32);
 
         if (op == 0) { ;; deploy new nft
-
-            cell base_content = inner_payload~load_ref();
-
             int now_time = now();
             throw_unless(199, now_time > auction_start_time); ;; start of auction
             slice domain = read_domain_from_comment(inner_payload);
@@ -136,11 +149,44 @@ slice calculate_nft_item_address(int wc, cell state_init) {
             cell state_init = calculate_nft_item_state_init(item_index, nft_item_code);
             slice nft_address = calculate_nft_item_address(workchain(), state_init);
 
-            slice sliced_duck_jetton_info = duck_jetton_info.begin_parse();
-            slice duck_master_address = sliced_duck_jetton_info~load_msg_addr();
-            cell duck_jetton_wallet_code = sliced_duck_jetton_info~load_ref();
-
             slice dns_item_jetton_wallet_address = calculate_user_jetton_wallet_address(nft_address, duck_master_address, duck_jetton_wallet_code);
+
+            slice sliced_base_content_template = base_content_template.begin_parse();
+
+            slice description = sliced_base_content_template~load_ref().begin_parse();
+            slice image_path = sliced_base_content_template~load_ref().begin_parse();
+
+            slice full_domain_name = (
+                begin_cell()
+                    .store_slice(domain)
+                    .store_ref(
+                        begin_cell()
+                            .store_slice(".duck")
+                        .end_cell()
+                    )
+                .end_cell().begin_parse()
+            );
+
+            slice full_image_path = (
+                begin_cell()
+                    .store_slice(image_path)
+                    .store_ref(
+                        begin_cell()
+                            .store_slice(domain)
+                            .store_ref(
+                                begin_cell()
+                                    .store_slice(".jpg")
+                                .end_cell()
+                            )
+                        .end_cell()
+                    )
+                .end_cell().begin_parse()
+            );
+
+            cell base_content = new_dict();
+            base_content = base_content.udict_set_ref(256, string_hash("name"), begin_cell().store_uint(0, 8).store_slice(full_domain_name).end_cell());
+            base_content = base_content.udict_set_ref(256, string_hash("description"), begin_cell().store_uint(0, 8).store_slice(description).end_cell());
+            base_content = base_content.udict_set_ref(256, string_hash("image"), begin_cell().store_uint(0, 8).store_slice(full_image_path).end_cell());
 
             deploy_nft_item(state_init, DEPLOY_TON_AMOUNT, nft_address, 1);
 
@@ -149,7 +195,12 @@ slice calculate_nft_item_address(int wc, cell state_init) {
                     .store_slice(from_address)
                     .store_ref(begin_cell().store_slice(domain).end_cell())
                     .store_slice(dns_item_jetton_wallet_address)
-                    .store_ref(base_content)
+                    .store_ref(
+                        begin_cell()
+                            .store_uint(0, 8) ;; onchain tag
+                            .store_dict(base_content)
+                        .end_cell()
+                    )
                 .end_cell();
 
             
@@ -165,7 +216,7 @@ slice calculate_nft_item_address(int wc, cell state_init) {
     if (op_code == 2) { ;; change admin address
         throw_unless(403, equal_slices(sender_address, admin_address));
         slice new_admin_address = in_msg_body~load_msg_addr();
-        save_data(content, nft_item_code, new_admin_address);
+        save_data(content, nft_item_code, new_admin_address, duck_jetton_info, base_content_template);
         return ();
     }
 
@@ -174,6 +225,13 @@ slice calculate_nft_item_address(int wc, cell state_init) {
         slice msg = in_msg_body~load_ref().begin_parse();
         int mode = msg~load_uint(8);
         send_raw_message(msg~load_ref(), mode);
+        return ();
+    }
+
+    if (op_code == 4) { ;; change base content template
+        throw_unless(403, equal_slices(admin_address, sender_address));
+        cell new_base_content_template = in_msg_body~load_ref();
+        save_data(content, nft_item_code, admin_address, duck_jetton_info, new_base_content_template);
         return ();
     }
 
@@ -187,12 +245,12 @@ slice calculate_nft_item_address(int wc, cell state_init) {
 ;; Get methods
 
 (int, cell, slice) get_collection_data() method_id {
-    (cell content, _, slice admin_address, _) = load_data();
+    (cell content, _, slice admin_address, _, _) = load_data();
     return (-1, content, admin_address);
 }
 
 slice get_nft_address_by_index(int index) method_id {
-    (_, cell nft_item_code, _, _) = load_data();
+    (_, cell nft_item_code, _, _, _) = load_data();
     cell state_init = calculate_nft_item_state_init(index, nft_item_code);
     return calculate_nft_item_address(workchain(), state_init);
 }
@@ -207,8 +265,22 @@ cell get_nft_content(int index, cell individual_nft_content) method_id {
 ;;           = duck_jetton_info;
 
 cell get_duck_jetton_info() method_id {
-    (_, _, _, cell duck_jetton_info) = load_data();
+    (_, _, _, cell duck_jetton_info, _) = load_data();
     return duck_jetton_info;
+}
+
+(slice, slice, slice) get_base_content_template() method_id {
+    (_, _, _, _, cell base_content_template) = load_data();
+    slice sliced_base_content_template = base_content_template.begin_parse();
+
+    slice description = sliced_base_content_template~load_ref().begin_parse();
+    slice image_path = sliced_base_content_template~load_ref().begin_parse();
+
+    return (
+        ".duck", 
+        description,
+        image_path
+    );
 }
 
 (int, cell) dnsresolve(slice subdomain, int category) method_id {

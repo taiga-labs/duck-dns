@@ -7,7 +7,7 @@
 ;; Domain smart contract (implement NFT item interface)
 
 int deploy_ton_amount() asm "500000000 PUSHINT"; ;; 0.5 TON
-int min_tons_for_storage() asm "1000000000 PUSHINT"; ;; 1 TON
+int min_tons_for_storage() asm "500000000 PUSHINT"; ;; 0.5 TON TON
 int jetton_transfer_comission() asm "50000000 PUSHINT"; ;; 0.05 TON
 
 const auction_start_duration = 604800; ;; 1 week = 60 * 60 * 24 * 7; in testnet 5 min
@@ -221,6 +221,9 @@ cell pack_auction(slice max_bid_address, int max_bid_amount, int auction_end_tim
         }
 
         ;; users jettons after that, not dns minter
+
+        ;; check jetton
+        throw_unless(503, equal_slices(duck_jetton_wallet_address, sender_address));
 
         int inner_op_code = inner_payload~load_uint(32);
         (slice max_bid_address, int max_bid_amount, int auction_end_time) = unpack_auction(auction);

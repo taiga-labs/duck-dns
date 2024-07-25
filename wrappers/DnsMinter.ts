@@ -1,4 +1,4 @@
-import { Address, beginCell, Cell, Contract, contractAddress, ContractProvider, Sender, SendMode, TupleItemInt, TupleItemSlice } from '@ton/core';
+import { Address, beginCell, Cell, Contract, contractAddress, ContractProvider, Sender, SendMode, Slice, TupleItemInt, TupleItemSlice } from '@ton/core';
 import { toSha256 } from '../helpers/hashing';
 
 export type DnsMinterConfig = {
@@ -6,6 +6,7 @@ export type DnsMinterConfig = {
     nftItemCode: Cell;
     adminAddress: Address;
     duckJettonInfo: Cell;
+    baseContentTemplates: Cell;
 };
 
 export function dnsMinterConfigToCell(config: DnsMinterConfig): Cell {
@@ -15,6 +16,7 @@ export function dnsMinterConfigToCell(config: DnsMinterConfig): Cell {
             .storeRef(config.nftItemCode)
             .storeAddress(config.adminAddress)
             .storeRef(config.duckJettonInfo)
+            .storeRef(config.baseContentTemplates)
         .endCell()
     );
 }
@@ -82,6 +84,37 @@ export class DnsMinter implements Contract {
                 .endCell(),
         });
     }
+
+    async sendChangeBaseContentTemplate(provider: ContractProvider, via: Sender, 
+        options: {
+            value: bigint;
+            new_description: string;
+            new_base_path: string;
+        }
+    ) {
+        await provider.internal(via, {
+            value: options.value,
+            sendMode: SendMode.PAY_GAS_SEPARATELY,
+            body: 
+                beginCell()
+                    .storeUint(4, 32)
+                    .storeRef(
+                        beginCell()
+                            .storeRef(
+                                beginCell()
+                                    .storeStringTail(options.new_description)
+                                .endCell()
+                            )
+                            .storeRef(
+                                beginCell()
+                                    .storeStringTail(options.new_base_path) // image path
+                                .endCell()
+                            )    
+                        .endCell()
+                    )
+                .endCell(),
+        });
+    }
     
     async getDnsresolve(provider: ContractProvider, 
         options: {
@@ -127,6 +160,16 @@ export class DnsMinter implements Contract {
             result.stack.readNumber(),
             result.stack.readCellOpt(),
             result.stack.readAddressOpt(),
+        ]
+        
+    }
+
+    async getBaseContentTemplate(provider: ContractProvider ): Promise<[string, string, string]> {
+        const result = await provider.get("get_base_content_template", [ ]);
+        return [
+            result.stack.readString(),
+            result.stack.readString(),
+            result.stack.readString(),
         ]
         
     }

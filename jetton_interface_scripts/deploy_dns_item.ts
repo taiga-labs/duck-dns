@@ -6,11 +6,9 @@ import * as addresses from '../helpers/addresses';
 import { ENDPOINT, TON_CENTER_API_KEY } from '../helpers/connection';
 import { beginCell, MessageRelaxed, TonClient, WalletContractV4 } from '@ton/ton';
 import { DEPLOY_TON_AMOUNT, JETTON_TRANSFER_COMISSION, sendJettonsSerealize, } from './interface/sending';
-import { setItemContentCell } from '../scripts/nftContent/onChain';
 
 
-// ссылка на картинку
-const IMAGE_LINK: string = "https://i.ibb.co/Z1GLsct/cat.jpg";
+// const IMAGE_LINK: string = "https://i.ibb.co/Z1GLsct/cat.jpg";
 
 const jettonAmount: bigint = 10000n;
 const WALELT_MNEMONIC: string = "cushion unaware dune garbage soap recipe manual garment sorry mass raccoon punch pony rifle amazing grant panda casino indoor suspect alien orient thought vault";
@@ -37,11 +35,7 @@ export async function deploy_dns_item(newDomain: string) {
         my_address.toString(), 
         jettonAmount,
         (JETTON_TRANSFER_COMISSION * 2) + DEPLOY_TON_AMOUNT,
-        beginCell().storeUint(0, 32).storeRef(setItemContentCell({
-            name: `${newDomain}.duck`,
-            description: `Duck domain name: ${newDomain}.duck`,
-            image: IMAGE_LINK
-        })).storeStringTail(newDomain).endCell(),
+        beginCell().storeUint(0, 32).storeStringTail(newDomain).endCell(),
         addresses.DUCK_DOMAIN_NAMES_MINTER,
         0.02, // additional fee for collection contract
         client
@@ -64,4 +58,4 @@ export async function deploy_dns_item(newDomain: string) {
     console.log("transaction confirmed!")
 }
 
-deploy_dns_item("taiga-labs-pro");
+deploy_dns_item("orange-nice-cat");

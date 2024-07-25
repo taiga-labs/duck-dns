@@ -77,6 +77,30 @@ export class DnsItem implements Contract {
         });
     }
 
+    async sendTransferItem(provider: ContractProvider, via: Sender, 
+        options: {
+            value: bigint;
+            queryId: bigint;
+            newOwnerAddress: string;
+        }
+    ) {
+        await provider.internal(via, {
+            value: options.value,
+            sendMode: SendMode.PAY_GAS_SEPARATELY,
+            body: 
+                beginCell()
+                    .storeUint(0x5fcc3d14, 32)
+                    .storeUint(Math.floor(Date.now() / 1000), 64)
+                    .storeAddress(Address.parse(options.newOwnerAddress))
+                    .storeAddress(null)
+                    .storeBit(false) // no custom payload
+                    .storeCoins(0)
+                    .storeBit(false) // no forward payload
+                .endCell()
+        });
+    }
+
+
     async getDomain(provider: ContractProvider): Promise<string> {
         const result = await provider.get("get_domain", []);
         return result.stack.readString()
