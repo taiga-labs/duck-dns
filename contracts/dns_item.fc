@@ -291,6 +291,7 @@ cell pack_auction(slice max_bid_address, int max_bid_amount, int auction_end_tim
 
     if ((auction_complete) & (~ cell_null?(auction))) { ;; take domain after auction
         send_simple_jetton(collection_address, max_bid_amount, jetton_transfer_comission(), 0, duck_jetton_wallet_address, query_id, 1);
+        send_simple_message(collection_address, my_balance - min_tons_for_storage(), 0, now(), null(), 1);
         smc_jetton_balance -= max_bid_amount;
         owner_address = max_bid_address;
         auction = null();
