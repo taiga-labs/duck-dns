@@ -10,7 +10,7 @@ import { DEPLOY_TON_AMOUNT, JETTON_TRANSFER_COMISSION, sendJettonsSerealize, } f
 
 // const IMAGE_LINK: string = "https://i.ibb.co/Z1GLsct/cat.jpg";
 
-const jettonAmount: bigint = 10000n;
+const jettonAmount: bigint = 1000001n;
 const WALELT_MNEMONIC: string = "cushion unaware dune garbage soap recipe manual garment sorry mass raccoon punch pony rifle amazing grant panda casino indoor suspect alien orient thought vault";
 
 
@@ -58,4 +58,4 @@ export async function deploy_dns_item(newDomain: string) {
     console.log("transaction confirmed!")
 }
 
-deploy_dns_item("orange-nice-cat");
+deploy_dns_item("a");
