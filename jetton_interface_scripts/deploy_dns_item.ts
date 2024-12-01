@@ -5,7 +5,7 @@ import { mnemonicToWalletKey } from '@ton/crypto';
 import * as addresses from '../helpers/addresses';
 import { ENDPOINT, TON_CENTER_API_KEY } from '../helpers/connection';
 import { beginCell, MessageRelaxed, TonClient, WalletContractV4 } from '@ton/ton';
-import { DEPLOY_TON_AMOUNT, JETTON_TRANSFER_COMISSION, sendJettonsSerealize, } from './interface/sending';
+import { DEPLOY_TON_AMOUNT, JETTON_TRANSFER_COMISSION, SERVICE_TON_COMISSION, sendJettonsSerealize} from './interface/sending';
 
 
 // const IMAGE_LINK: string = "https://i.ibb.co/Z1GLsct/cat.jpg";
@@ -34,7 +34,7 @@ export async function deploy_dns_item(newDomain: string) {
     const message: MessageRelaxed = await sendJettonsSerealize(
         my_address.toString(), 
         jettonAmount,
-        (JETTON_TRANSFER_COMISSION * 2) + DEPLOY_TON_AMOUNT,
+        (JETTON_TRANSFER_COMISSION * 2) + DEPLOY_TON_AMOUNT + SERVICE_TON_COMISSION,
         beginCell().storeUint(0, 32).storeStringTail(newDomain).endCell(),
         addresses.DUCK_DOMAIN_NAMES_MINTER,
         0.02, // additional fee for collection contract

@@ -5,6 +5,7 @@
 #include "imports/dns_utils.fc";
 #include "imports/jetton_utils.fc";
 
+const int SERVICE_TON_COMISSION = 100000000; ;; 0.1 TON
 const int DEPLOY_TON_AMOUNT = 500000000; ;; 0.5 TON
 const int JETTON_TRANSFER_COMISSION = 50000000; ;; 0.05 TON
 
@@ -110,7 +111,7 @@ slice calculate_nft_item_address(int wc, cell state_init) {
 
     if (op_code == 0x7362d09c) { ;; jetton transfer notification
 
-        throw_unless(512, msg_value >= (JETTON_TRANSFER_COMISSION * 2) + DEPLOY_TON_AMOUNT);
+        throw_unless(512, msg_value >= (JETTON_TRANSFER_COMISSION * 2) + DEPLOY_TON_AMOUNT + SERVICE_TON_COMISSION);
 
         int query_id = in_msg_body~load_uint(64);
         int msg_jetton_amount = in_msg_body~load_coins();

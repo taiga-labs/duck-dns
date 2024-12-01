@@ -5,6 +5,7 @@ import { DUCK_MINTER_ADDRESS } from "../../helpers/addresses";
 import { calculateJettonWalletAddress } from "../../helpers/tonclient";
 import { Address, beginCell, Cell, internal, MessageRelaxed, toNano } from "@ton/core";
 
+export const SERVICE_TON_COMISSION: number = 0.1; // 0.1 TON
 export const DEPLOY_TON_AMOUNT: number = 0.5; // 0.5 TON
 export const JETTON_TRANSFER_COMISSION: number = 0.05; // 0.05 TON
 
